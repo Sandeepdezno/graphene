@@ -59,8 +59,46 @@ class Neo4jGraphRepository(GraphRepository):
     def write_relationships(self, relationships: Sequence[Any]) -> None:
         raise NotImplementedError("write_relationships lands in GRAPH-D1.5")
 
-    def get_graph(self, limit: int) -> Any:
-        raise NotImplementedError("get_graph lands in GRAPH-D2.1")
+    def get_graph(self, limit: int) -> dict[str, Any]:
+        """Minimal graph read (GRAPH-D0.5): nodes up to ``limit`` plus the
+        relationships among them, as plain dicts keyed to the API schema
+        fields. The bounded/typed version arrives in GRAPH-D2.1.
+        """
+        with self._driver.session() as session:
+            node_records = session.run(
+                "MATCH (n) RETURN elementId(n) AS id, labels(n)[0] AS label, "
+                "properties(n) AS props LIMIT $limit",
+                limit=limit,
+            ).data()
+            total_count = session.run(
+                "MATCH (n) RETURN count(n) AS c"
+            ).single()["c"]
+            rel_records = session.run(
+                "MATCH (a)-[r]->(b) RETURN elementId(r) AS id, type(r) AS type, "
+                "elementId(a) AS source_id, elementId(b) AS target_id, "
+                "properties(r) AS props"
+            ).data()
+
+        nodes = [
+            {"id": r["id"], "label": r["label"], **r["props"]} for r in node_records
+        ]
+        node_ids = {n["id"] for n in nodes}
+        relationships = [
+            {
+                "id": r["id"],
+                "type": r["type"],
+                "source_id": r["source_id"],
+                "target_id": r["target_id"],
+                **r["props"],
+            }
+            for r in rel_records
+            if r["source_id"] in node_ids and r["target_id"] in node_ids
+        ]
+        return {
+            "nodes": nodes,
+            "relationships": relationships,
+            "total_count": total_count,
+        }
 
     def get_node(self, node_id: str) -> Any:
         raise NotImplementedError("get_node lands in GRAPH-D2.1")
