@@ -1,12 +1,10 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
+import "@fontsource/inter/400.css";
+import "@fontsource/inter/500.css";
+import "@fontsource/inter/600.css";
 import "./index.css";
-
-// Minimal mount point. The real app shell (nav rail, dark theme tokens) is
-// built in GRAPH-D0.4.
-function App(): React.JSX.Element {
-  return <div>Graphene</div>;
-}
+import { App } from "./app/App";
 
 const rootEl = document.getElementById("root");
 if (rootEl) {

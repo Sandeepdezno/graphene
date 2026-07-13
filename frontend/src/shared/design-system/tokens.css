@@ -1,0 +1,40 @@
+/*
+ * Graphene design tokens — the ONLY place raw hex values are allowed.
+ * Components reference these exclusively via Tailwind color utilities
+ * (mapped in tailwind.config.js) or var(--token). Dark theme is the default
+ * and only theme for the investor demo.
+ */
+
+:root {
+  color-scheme: dark;
+
+  /* ---- Surfaces ---- */
+  --bg-canvas: #0a0c10;        /* near-black graph canvas */
+  --bg-surface: #12151c;       /* nav rail, panels */
+  --bg-surface-raised: #1a1f28; /* hover / elevated cards */
+  --border: #242a35;           /* hairline dividers, grid dots */
+
+  /* ---- Text ---- */
+  --text-primary: #e7ebf2;
+  --text-secondary: #8b95a7;
+
+  /* ---- Brand accent ---- */
+  --accent: #6ea0ff;           /* periwinkle-azure, UI/interactive */
+
+  /* ---- Risk tiers (impact analysis) ---- */
+  --risk-high: #ff6470;
+  --risk-medium: #ffb454;
+  --risk-low: #34d399;
+
+  /* ---- Confidence (relationship provenance) ---- */
+  --confidence-direct: #c6ced9;   /* solid / certain */
+  --confidence-inferred: #5b6577; /* muted / derived */
+
+  /* ---- Node-type colors (categorical, tuned for the dark canvas) ---- */
+  --node-program: #3fb0ff;         /* cyan-blue */
+  --node-table: #2dd4bf;           /* teal */
+  --node-function-module: #c084fc; /* violet */
+  --node-badi: #f5b544;            /* gold */
+  --node-job: #f472b6;             /* pink */
+  --node-transport: #a3e635;       /* lime */
+}
