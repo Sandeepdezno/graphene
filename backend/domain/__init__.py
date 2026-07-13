@@ -13,9 +13,12 @@ from .models import (
     BAdI,
     Confidence,
     FunctionModule,
+    ImportResult,
     Job,
     NodeModel,
     Program,
+    Relationship,
+    RelationshipType,
     Table,
     Transport,
 )
@@ -32,4 +35,7 @@ __all__ = [
     "BAdI",
     "Job",
     "Transport",
+    "Relationship",
+    "RelationshipType",
+    "ImportResult",
 ]

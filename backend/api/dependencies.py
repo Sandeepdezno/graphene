@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from ..adapters.graph_neo4j import Neo4jGraphRepository
-from ..domain.graph_ports import GraphRepository
+from adapters.graph_neo4j import Neo4jGraphRepository
+from domain.graph_ports import GraphRepository
 
 
 @lru_cache(maxsize=1)

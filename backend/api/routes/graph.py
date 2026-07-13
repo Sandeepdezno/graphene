@@ -17,7 +17,7 @@ from ..schemas import (
     NodeSchema,
     RelationshipSchema,
 )
-from ...domain.graph_ports import GraphRepository
+from domain.graph_ports import GraphRepository
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["graph"])

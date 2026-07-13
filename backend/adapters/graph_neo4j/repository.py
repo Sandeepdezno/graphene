@@ -13,8 +13,8 @@ from typing import Any
 
 from neo4j import GraphDatabase
 
-from ...domain.graph_ports import GraphRepository
-from ...domain.models import NodeModel
+from domain.graph_ports import GraphRepository
+from domain.models import NodeModel
 
 DEFAULT_URI = "bolt://localhost:7687"
 DEFAULT_USER = "neo4j"

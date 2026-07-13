@@ -1,6 +1,7 @@
 """Graphene FastAPI application entrypoint.
 
-Run with: ``uvicorn backend.api.main:app`` from the repository root.
+`backend/` is the source root (top-level packages: domain, adapters, api).
+Run with: ``PYTHONPATH=backend uvicorn api.main:app`` from the repository root.
 """
 
 from __future__ import annotations

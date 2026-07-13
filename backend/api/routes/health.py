@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends
 
 from ..dependencies import get_graph_repository
 from ..schemas import HealthResponse, Neo4jStatus
-from ...domain.graph_ports import GraphRepository
+from domain.graph_ports import GraphRepository
 
 router = APIRouter(tags=["health"])
 
