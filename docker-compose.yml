@@ -1,0 +1,17 @@
+# Graphene — local Neo4j for the investor demo.
+# Neo4j 5 Community. Data persists across restarts via a named volume.
+services:
+  neo4j:
+    image: neo4j:5-community
+    container_name: graphene-neo4j
+    ports:
+      - "7474:7474"   # HTTP browser
+      - "7687:7687"   # Bolt
+    environment:
+      NEO4J_AUTH: neo4j/graphene-dev
+    volumes:
+      - neo4j-data:/data
+    restart: unless-stopped
+
+volumes:
+  neo4j-data:

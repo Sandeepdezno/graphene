@@ -1,0 +1,27 @@
+[project]
+name = "graphene-backend"
+version = "0.1.0"
+description = "Graphene backend — SAP System Intelligence Platform (investor demo)"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "neo4j",
+    "python-multipart",
+    "openpyxl",
+    "httpx",
+    "pytest",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+# Hexagonal layout: domain/, adapters/, api/ are top-level packages under backend/.
+# Only `domain` exists at GRAPH-D0.1; the others are declared for later sprints.
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["domain*", "adapters*", "api*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
