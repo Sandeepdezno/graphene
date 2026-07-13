@@ -11,7 +11,7 @@ from collections.abc import AsyncIterator
 from fastapi import FastAPI
 
 from .dependencies import get_graph_repository
-from .routes.health import router as health_router
+from .routes import api_router
 
 
 @asynccontextmanager
@@ -25,4 +25,4 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="Graphene API", version="0.1.0", lifespan=lifespan)
-app.include_router(health_router, prefix="/api/v1")
+app.include_router(api_router, prefix="/api/v1")
