@@ -20,5 +20,5 @@ def health(repo: GraphRepository = Depends(get_graph_repository)) -> HealthRespo
     connected = repo.health_check()
     return HealthResponse(
         status="ok" if connected else "degraded",
-        neo4j=Neo4jStatus(connected=connected, uri=getattr(repo, "uri", None)),
+        neo4j=Neo4jStatus(connected=connected),
     )

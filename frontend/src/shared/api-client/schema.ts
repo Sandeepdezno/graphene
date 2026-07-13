@@ -288,8 +288,6 @@ export interface components {
         Neo4jStatus: {
             /** Connected */
             connected: boolean;
-            /** Uri */
-            uri?: string | null;
         };
         /** NodeDetailResponse */
         NodeDetailResponse: {
@@ -505,6 +503,7 @@ export interface operations {
     get_graph_api_v1_graph_get: {
         parameters: {
             query?: {
+                /** @description Max nodes to return (capped at the server maximum). */
                 limit?: number;
             };
             header?: never;

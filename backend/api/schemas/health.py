@@ -7,7 +7,6 @@ from .base import Schema
 
 class Neo4jStatus(Schema):
     connected: bool
-    uri: str | None = None
 
 
 class HealthResponse(Schema):
