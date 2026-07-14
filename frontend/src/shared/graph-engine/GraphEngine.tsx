@@ -32,6 +32,8 @@ export type GraphEngineProps = {
    *  is well under it; excess nodes (and their edges) are dropped. */
   maxNodes?: number;
   onNodeClick?: (id: string) => void;
+  /** Fired when the empty canvas (not a node) is clicked. */
+  onBackgroundClick?: () => void;
   /** Controlled highlight: these nodes get an accent ring and stay bright. */
   highlightNodeIds?: ReadonlySet<string>;
   /** When true, nodes not in `highlightNodeIds` render at 15% opacity. */
@@ -57,6 +59,7 @@ export const GraphEngine = forwardRef<GraphEngineHandle, GraphEngineProps>(
       edges,
       maxNodes = DEFAULT_MAX_NODES,
       onNodeClick,
+      onBackgroundClick,
       highlightNodeIds,
       dim = false,
       isEdgeVisible,
@@ -180,6 +183,7 @@ export const GraphEngine = forwardRef<GraphEngineHandle, GraphEngineProps>(
             cooldownTime={SETTLE_MS}
             onEngineStop={handleEngineStop}
             onNodeClick={(node) => onNodeClick?.((node as { id: string }).id)}
+            onBackgroundClick={() => onBackgroundClick?.()}
             nodeCanvasObject={(node, ctx, globalScale) => {
               const n = node as { id: string; name: string; label: string; __r: number; x: number; y: number };
               const highlighted = highlightNodeIds?.has(n.id) ?? false;

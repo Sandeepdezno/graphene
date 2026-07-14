@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../../shared/api-client";
 import { GraphEngine } from "../../shared/graph-engine";
 import type {
@@ -7,6 +7,7 @@ import type {
   GraphNodeInput,
 } from "../../shared/graph-engine";
 import { Legend } from "./Legend";
+import { NodeDrawer } from "./NodeDrawer";
 
 const FLAGSHIP_NODE_ID = "Z_PRICE_ENGINE";
 
@@ -16,7 +17,12 @@ export function GraphExplorerPage() {
   const [state, setState] = useState<LoadState>("loading");
   const [nodes, setNodes] = useState<GraphNodeInput[]>([]);
   const [edges, setEdges] = useState<GraphEdgeInput[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const engineRef = useRef<GraphEngineHandle>(null);
+  const highlightNodeIds = useMemo(
+    () => (selectedId ? new Set([selectedId]) : undefined),
+    [selectedId],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -72,9 +78,19 @@ export function GraphExplorerPage() {
         nodes={nodes}
         edges={edges}
         focusRegionNodeId={FLAGSHIP_NODE_ID}
-        onNodeClick={(id) => console.debug("node clicked:", id)}
+        highlightNodeIds={highlightNodeIds}
+        onNodeClick={(id) => setSelectedId(id)}
+        onBackgroundClick={() => setSelectedId(null)}
       />
       <Legend />
+      <NodeDrawer
+        nodeId={selectedId}
+        onClose={() => setSelectedId(null)}
+        onNavigate={(id) => {
+          void engineRef.current?.flyToNode(id);
+          setSelectedId(id);
+        }}
+      />
     </div>
   );
 }
