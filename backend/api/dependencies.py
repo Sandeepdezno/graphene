@@ -9,10 +9,24 @@ from __future__ import annotations
 from functools import lru_cache
 
 from adapters.graph_neo4j import Neo4jGraphRepository
+from adapters.importer_excel import ExcelImporter
 from domain.graph_ports import GraphRepository
+from domain.services.import_job import ImportJobStore
 
 
 @lru_cache(maxsize=1)
 def get_graph_repository() -> GraphRepository:
     """Return the process-wide GraphRepository, hardcoded to the Neo4j adapter."""
     return Neo4jGraphRepository()
+
+
+@lru_cache(maxsize=1)
+def get_import_job_store() -> ImportJobStore:
+    """Return the process-wide in-memory import-job store."""
+    return ImportJobStore()
+
+
+@lru_cache(maxsize=1)
+def get_excel_importer() -> ExcelImporter:
+    """Return the Excel importer (hardcoded adapter binding)."""
+    return ExcelImporter()

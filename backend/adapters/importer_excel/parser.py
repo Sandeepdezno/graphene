@@ -63,8 +63,27 @@ def _split(cell: str) -> list[str]:
 class ExcelImporter(SourceImporter):
     """Parses the flagship workbook contract into domain objects."""
 
-    def parse(self, content: bytes) -> ImportResult:
-        wb = load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+    @staticmethod
+    def _load(content: bytes):
+        return load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+
+    def validate(self, content: bytes) -> None:
+        """Structure-only check (sheets + columns). Raises ImporterValidationError.
+
+        Cheap enough to run synchronously in the request handler so a malformed
+        upload gets a 422 before any job is created.
+        """
+        wb = self._load(content)
+        try:
+            self._validate(wb)
+        finally:
+            wb.close()
+
+    def parse_direct(
+        self, content: bytes
+    ) -> tuple[list[NodeModel], list[Relationship]]:
+        """Parse the workbook into nodes + direct (explicit) edges only."""
+        wb = self._load(content)
         try:
             self._validate(wb)
             now = datetime.now(timezone.utc)
@@ -81,13 +100,18 @@ class ExcelImporter(SourceImporter):
             self._parse_jobs(wb["Jobs"], registry, direct, seen, now)
             self._parse_transports(wb["Transports"], registry, direct, seen, now)
 
-            inferred = infer_transitive_writes(direct, now)
-            return ImportResult(
-                nodes=list(registry.values()),
-                relationships=direct + inferred,
-            )
+            return list(registry.values()), direct
         finally:
             wb.close()
+
+    def infer(self, direct: list[Relationship]) -> list[Relationship]:
+        """Apply the one inference rule to a set of direct edges."""
+        return infer_transitive_writes(direct, datetime.now(timezone.utc))
+
+    def parse(self, content: bytes) -> ImportResult:
+        nodes, direct = self.parse_direct(content)
+        inferred = self.infer(direct)
+        return ImportResult(nodes=nodes, relationships=direct + inferred)
 
     # -- validation -------------------------------------------------------
     def _validate(self, wb) -> None:
