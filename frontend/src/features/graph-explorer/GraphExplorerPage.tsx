@@ -8,7 +8,10 @@ import type {
 } from "../../shared/graph-engine";
 import { Legend } from "./Legend";
 import { NodeDrawer } from "./NodeDrawer";
+import { ConfidenceToggle } from "./ConfidenceToggle";
 import { SearchOverlay } from "../search/SearchOverlay";
+
+const FADE_MS = 300;
 
 const FLAGSHIP_NODE_ID = "Z_PRICE_ENGINE";
 
@@ -19,11 +22,30 @@ export function GraphExplorerPage() {
   const [nodes, setNodes] = useState<GraphNodeInput[]>([]);
   const [edges, setEdges] = useState<GraphEdgeInput[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showInferred, setShowInferred] = useState(true);
+  const [inferredOpacity, setInferredOpacity] = useState(1);
   const engineRef = useRef<GraphEngineHandle>(null);
   const highlightNodeIds = useMemo(
     () => (selectedId ? new Set([selectedId]) : undefined),
     [selectedId],
   );
+
+  // Fade inferred edges in/out over ~300ms (opacity only — no relayout).
+  useEffect(() => {
+    const to = showInferred ? 1 : 0;
+    const from = inferredOpacity;
+    if (from === to) return;
+    const start = performance.now();
+    let raf = 0;
+    const tick = () => {
+      const t = Math.min(1, (performance.now() - start) / FADE_MS);
+      setInferredOpacity(from + (to - from) * t);
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+    // Intentionally keyed only on the toggle; `from` captures the current value.
+  }, [showInferred]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     let cancelled = false;
@@ -80,8 +102,14 @@ export function GraphExplorerPage() {
         edges={edges}
         focusRegionNodeId={FLAGSHIP_NODE_ID}
         highlightNodeIds={highlightNodeIds}
+        inferredEdgeOpacity={inferredOpacity}
         onNodeClick={(id) => setSelectedId(id)}
         onBackgroundClick={() => setSelectedId(null)}
+      />
+      <ConfidenceToggle
+        checked={showInferred}
+        onChange={setShowInferred}
+        drawerOpen={selectedId != null}
       />
       <Legend />
       <NodeDrawer

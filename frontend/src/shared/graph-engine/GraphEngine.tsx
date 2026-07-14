@@ -40,6 +40,9 @@ export type GraphEngineProps = {
   dim?: boolean;
   /** Edge visibility filter (e.g. hide inferred edges). */
   isEdgeVisible?: (edge: GraphEdgeInput) => boolean;
+  /** Opacity multiplier for inferred edges (1 = shown, 0 = faded out). Animate
+   *  this to fade inferred edges without changing the layout. */
+  inferredEdgeOpacity?: number;
   /** After settle, the camera eases toward this node's region (demo 1:00-1:15). */
   focusRegionNodeId?: string;
   /** Called once when the force layout settles, with the measured settle ms. */
@@ -63,6 +66,7 @@ export const GraphEngine = forwardRef<GraphEngineHandle, GraphEngineProps>(
       highlightNodeIds,
       dim = false,
       isEdgeVisible,
+      inferredEdgeOpacity = 1,
       focusRegionNodeId,
       onSettle,
     },
@@ -231,8 +235,10 @@ export const GraphEngine = forwardRef<GraphEngineHandle, GraphEngineProps>(
               if (isEdgeVisible && !isEdgeVisible(l)) return;
 
               const inferred = l.confidence === "inferred";
+              const alpha = inferred ? 0.65 * inferredEdgeOpacity : 0.4;
+              if (alpha <= 0.001) return; // fully faded — skip draw (positions unchanged)
               ctx.strokeStyle = inferred ? colors.inferred : colors.direct;
-              ctx.globalAlpha = inferred ? 0.65 : 0.4;
+              ctx.globalAlpha = alpha;
               ctx.lineWidth = 0.6;
               ctx.setLineDash(inferred ? [2, 2] : []);
               ctx.beginPath();
