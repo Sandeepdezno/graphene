@@ -5,6 +5,7 @@ from __future__ import annotations
 from .chat import ChatRequest, ChatResponse
 from .enums import (
     ConfidenceEnum,
+    Direction,
     ImportStage,
     NodeLabel,
     RelationshipType,
@@ -13,6 +14,7 @@ from .enums import (
 from .graph import (
     GraphResponse,
     NodeDetailResponse,
+    NodeNeighbor,
     NodeSchema,
     RelationshipSchema,
 )
@@ -29,8 +31,10 @@ __all__ = [
     "NodeLabel",
     "RelationshipType",
     "SourceEnum",
+    "Direction",
     "GraphResponse",
     "NodeDetailResponse",
+    "NodeNeighbor",
     "NodeSchema",
     "RelationshipSchema",
     "HealthResponse",

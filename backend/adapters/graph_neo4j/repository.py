@@ -16,7 +16,7 @@ from neo4j import GraphDatabase
 from domain.graph_ports import GraphRepository
 from domain.models import NodeModel, Relationship
 
-from . import writer
+from . import reader, writer
 
 DEFAULT_URI = "bolt://localhost:7687"
 DEFAULT_USER = "neo4j"
@@ -61,48 +61,10 @@ class Neo4jGraphRepository(GraphRepository):
         writer.write_relationships(self._driver, relationships)
 
     def get_graph(self, limit: int) -> dict[str, Any]:
-        """Minimal graph read (GRAPH-D0.5): nodes up to ``limit`` plus the
-        relationships among them, as plain dicts keyed to the API schema
-        fields. The bounded/typed version arrives in GRAPH-D2.1.
-        """
-        with self._driver.session() as session:
-            node_records = session.run(
-                "MATCH (n) RETURN elementId(n) AS id, labels(n)[0] AS label, "
-                "properties(n) AS props LIMIT $limit",
-                limit=limit,
-            ).data()
-            total_count = session.run(
-                "MATCH (n) RETURN count(n) AS c"
-            ).single()["c"]
-            rel_records = session.run(
-                "MATCH (a)-[r]->(b) RETURN elementId(r) AS id, type(r) AS type, "
-                "elementId(a) AS source_id, elementId(b) AS target_id, "
-                "properties(r) AS props"
-            ).data()
+        return reader.read_graph(self._driver, limit)
 
-        nodes = [
-            {"id": r["id"], "label": r["label"], **r["props"]} for r in node_records
-        ]
-        node_ids = {n["id"] for n in nodes}
-        relationships = [
-            {
-                "id": r["id"],
-                "type": r["type"],
-                "source_id": r["source_id"],
-                "target_id": r["target_id"],
-                **r["props"],
-            }
-            for r in rel_records
-            if r["source_id"] in node_ids and r["target_id"] in node_ids
-        ]
-        return {
-            "nodes": nodes,
-            "relationships": relationships,
-            "total_count": total_count,
-        }
-
-    def get_node(self, node_id: str) -> Any:
-        raise NotImplementedError("get_node lands in GRAPH-D2.1")
+    def get_node(self, node_id: str) -> dict[str, Any] | None:
+        return reader.read_node(self._driver, node_id)
 
     def search(self, query: str) -> Sequence[NodeModel]:
         raise NotImplementedError("search lands in GRAPH-D2.5")

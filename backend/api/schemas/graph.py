@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from .base import Schema
-from .enums import ConfidenceEnum, NodeLabel, RelationshipType, SourceEnum
+from .enums import ConfidenceEnum, Direction, NodeLabel, RelationshipType, SourceEnum
 
 
 class NodeSchema(Schema):
@@ -41,7 +41,18 @@ class GraphResponse(Schema):
     truncation_warning: str | None = None
 
 
+class NodeNeighbor(Schema):
+    """A node adjacent to the focus node, with the connecting relationship."""
+
+    id: str
+    name: str
+    label: NodeLabel
+    relationship_type: RelationshipType
+    direction: Direction
+    confidence: ConfidenceEnum
+    derived_from: str
+
+
 class NodeDetailResponse(Schema):
     node: NodeSchema
-    neighbors: list[NodeSchema]
-    relationships: list[RelationshipSchema]
+    neighbors: list[NodeNeighbor]

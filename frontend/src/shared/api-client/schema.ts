@@ -207,6 +207,12 @@ export interface components {
          * @enum {string}
          */
         ConfidenceEnum: "direct" | "inferred";
+        /**
+         * Direction
+         * @description A neighbor's relationship direction relative to the focus node.
+         * @enum {string}
+         */
+        Direction: "in" | "out";
         /** GraphResponse */
         GraphResponse: {
             /** Nodes */
@@ -297,15 +303,29 @@ export interface components {
         NodeDetailResponse: {
             node: components["schemas"]["NodeSchema"];
             /** Neighbors */
-            neighbors: components["schemas"]["NodeSchema"][];
-            /** Relationships */
-            relationships: components["schemas"]["RelationshipSchema"][];
+            neighbors: components["schemas"]["NodeNeighbor"][];
         };
         /**
          * NodeLabel
          * @enum {string}
          */
         NodeLabel: "Program" | "Table" | "FunctionModule" | "BAdI" | "Job" | "Transport" | "User";
+        /**
+         * NodeNeighbor
+         * @description A node adjacent to the focus node, with the connecting relationship.
+         */
+        NodeNeighbor: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            label: components["schemas"]["NodeLabel"];
+            relationship_type: components["schemas"]["RelationshipType"];
+            direction: components["schemas"]["Direction"];
+            confidence: components["schemas"]["ConfidenceEnum"];
+            /** Derived From */
+            derived_from: string;
+        };
         /** NodeSchema */
         NodeSchema: {
             /** Id */

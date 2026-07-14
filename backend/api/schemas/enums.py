@@ -38,6 +38,13 @@ class RelationshipType(StrEnum):
     CREATED = "CREATED"
 
 
+class Direction(StrEnum):
+    """A neighbor's relationship direction relative to the focus node."""
+
+    IN = "in"
+    OUT = "out"
+
+
 class ImportStage(StrEnum):
     """Staged status of an import job.
 

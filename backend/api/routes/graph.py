@@ -14,6 +14,7 @@ from ..dependencies import get_graph_repository
 from ..schemas import (
     GraphResponse,
     NodeDetailResponse,
+    NodeNeighbor,
     NodeSchema,
     RelationshipSchema,
 )
@@ -61,7 +62,20 @@ def get_graph(
 
 
 @router.get("/graph/node/{id}", response_model=NodeDetailResponse)
-def get_node(id: str) -> NodeDetailResponse:
-    raise HTTPException(
-        status_code=501, detail="GET /graph/node/{id} is built in GRAPH-D2.1"
+def get_node(
+    id: str,
+    repo: GraphRepository = Depends(get_graph_repository),
+) -> NodeDetailResponse:
+    try:
+        detail = repo.get_node(id)
+    except Exception as exc:  # Neo4j unreachable / query failure
+        logger.exception("Node read failed")
+        raise HTTPException(status_code=503, detail="Graph store unavailable") from exc
+
+    if detail is None:
+        raise HTTPException(status_code=404, detail=f"Unknown node: {id}")
+
+    return NodeDetailResponse(
+        node=NodeSchema(**detail["node"]),
+        neighbors=[NodeNeighbor(**n) for n in detail["neighbors"]],
     )
