@@ -27,6 +27,8 @@ class ImportJob:
     job_id: str
     stage: ImportStage
     error: str | None = None
+    node_count: int | None = None
+    edge_count: int | None = None
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -46,6 +48,11 @@ class ImportJobStore:
 
     def advance(self, job_id: str, stage: ImportStage) -> None:
         self._jobs[job_id].stage = stage
+
+    def set_counts(self, job_id: str, node_count: int, edge_count: int) -> None:
+        job = self._jobs[job_id]
+        job.node_count = node_count
+        job.edge_count = edge_count
 
     def fail(self, job_id: str, error: str) -> None:
         job = self._jobs[job_id]

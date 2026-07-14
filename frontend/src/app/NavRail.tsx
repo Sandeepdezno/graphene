@@ -30,7 +30,7 @@ function ChatIcon({ className }: IconProps) {
 }
 
 const NAV_ITEMS = [
-  { to: "/", label: "Explorer", Icon: GraphIcon, end: true },
+  { to: "/explorer", label: "Explorer", Icon: GraphIcon, end: false },
   { to: "/import", label: "Import", Icon: ImportIcon, end: false },
   { to: "/chat", label: "Chat", Icon: ChatIcon, end: false },
 ] as const;

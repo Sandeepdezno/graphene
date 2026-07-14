@@ -29,7 +29,7 @@ router = APIRouter(tags=["import"])
 
 # Demo pacing so the staged animation (D1.4, demo bible 0:30-1:00) is visible;
 # write-time pacing is tuned for real in GRAPH-D1.5.
-STAGE_PAUSE_SECONDS = 0.4
+STAGE_PAUSE_SECONDS = 1.0
 
 
 def _run_import_pipeline(
@@ -60,6 +60,9 @@ def _run_import_pipeline(
             len(result.relationships),
         )
 
+        # Headline counts for the ticker: node total + DIRECT edges (matches the
+        # demo script's "214 nodes, 386 edges"; inferred edges are added on top).
+        store.set_counts(job_id, len(nodes), len(direct))
         store.advance(job_id, ImportStage.COMPLETE)
     except Exception as exc:  # noqa: BLE001 - any failure marks the job failed
         logger.exception("import %s failed", job_id)
@@ -102,7 +105,13 @@ def import_status(
     job = store.get(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail=f"Unknown job_id: {job_id}")
-    return JobStatusResponse(job_id=job.job_id, status=job.stage, error=job.error)
+    return JobStatusResponse(
+        job_id=job.job_id,
+        status=job.stage,
+        error=job.error,
+        node_count=job.node_count,
+        edge_count=job.edge_count,
+    )
 
 
 @router.post("/import/sap-rfc", response_model=ImportJobResponse)

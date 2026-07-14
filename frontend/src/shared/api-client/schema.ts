@@ -283,6 +283,10 @@ export interface components {
             message?: string | null;
             /** Error */
             error?: string | null;
+            /** Node Count */
+            node_count?: number | null;
+            /** Edge Count */
+            edge_count?: number | null;
         };
         /** Neo4jStatus */
         Neo4jStatus: {

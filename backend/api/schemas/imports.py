@@ -21,3 +21,6 @@ class JobStatusResponse(Schema):
     progress: float = 0.0
     message: str | None = None
     error: str | None = None
+    # Populated once the graph is built; drive the ticker's final "N nodes, M edges".
+    node_count: int | None = None
+    edge_count: int | None = None

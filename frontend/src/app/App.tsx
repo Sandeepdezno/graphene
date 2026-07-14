@@ -9,10 +9,11 @@ export function App() {
     <BrowserRouter>
       <Routes>
         <Route element={<AppLayout />}>
-          <Route index element={<GraphExplorerPage />} />
+          <Route index element={<Navigate to="/explorer" replace />} />
+          <Route path="explorer" element={<GraphExplorerPage />} />
           <Route path="import" element={<ImportPage />} />
           <Route path="chat" element={<ChatPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/explorer" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>
