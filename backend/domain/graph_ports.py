@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import Any
 
-from .models import NodeModel
+from .models import NodeModel, Relationship
 
 
 class GraphRepository(ABC):
@@ -27,7 +27,7 @@ class GraphRepository(ABC):
         ...
 
     @abstractmethod
-    def write_relationships(self, relationships: Sequence[Any]) -> None:
+    def write_relationships(self, relationships: Sequence[Relationship]) -> None:
         """Persist relationships between existing nodes."""
         ...
 

@@ -14,7 +14,9 @@ from typing import Any
 from neo4j import GraphDatabase
 
 from domain.graph_ports import GraphRepository
-from domain.models import NodeModel
+from domain.models import NodeModel, Relationship
+
+from . import writer
 
 DEFAULT_URI = "bolt://localhost:7687"
 DEFAULT_USER = "neo4j"
@@ -52,12 +54,11 @@ class Neo4jGraphRepository(GraphRepository):
     def close(self) -> None:
         self._driver.close()
 
-    # --- Out of scope for GRAPH-D0.2; implemented in later tickets. ---
     def write_nodes(self, nodes: Sequence[NodeModel]) -> None:
-        raise NotImplementedError("write_nodes lands in GRAPH-D1.5")
+        writer.write_nodes(self._driver, nodes)
 
-    def write_relationships(self, relationships: Sequence[Any]) -> None:
-        raise NotImplementedError("write_relationships lands in GRAPH-D1.5")
+    def write_relationships(self, relationships: Sequence[Relationship]) -> None:
+        writer.write_relationships(self._driver, relationships)
 
     def get_graph(self, limit: int) -> dict[str, Any]:
         """Minimal graph read (GRAPH-D0.5): nodes up to ``limit`` plus the

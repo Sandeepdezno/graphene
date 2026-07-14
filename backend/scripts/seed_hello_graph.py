@@ -1,8 +1,12 @@
 """Seed the 'Hello Graph' dataset directly into Neo4j (GRAPH-D0.5).
 
-Inserts 5 realistic SAP nodes and 4 relationships so the full stack can be
-proven to round-trip before any real import pipeline exists. Idempotent: uses
-MERGE, so re-running does not create duplicates.
+SUPERSEDED by the real Excel import path (GRAPH-D1.5): the graph is now built by
+uploading demo-data/flagship.xlsx through POST /api/v1/import/excel. Kept only as
+a minimal round-trip smoke test / reference; not part of the demo flow. Its 5
+node names are a subset of the flagship dataset, so running it changes nothing
+after a flagship import (MERGE upserts).
+
+Inserts 5 realistic SAP nodes and 4 relationships. Idempotent (MERGE).
 
 Run (with Neo4j up via docker-compose):
     ./backend/.venv/bin/python backend/scripts/seed_hello_graph.py

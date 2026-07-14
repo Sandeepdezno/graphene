@@ -18,18 +18,19 @@ from fastapi import (
     UploadFile,
 )
 
-from ..dependencies import get_excel_importer, get_import_job_store
+from ..dependencies import (
+    get_excel_importer,
+    get_graph_repository,
+    get_import_job_store,
+)
 from ..schemas import ImportJobResponse, JobStatusResponse
 from adapters.importer_excel import ExcelImporter, ImporterValidationError
+from domain.graph_ports import GraphRepository
 from domain.models import ImportResult
 from domain.services.import_job import ImportJobStore, ImportStage
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["import"])
-
-# Demo pacing so the staged animation (D1.4, demo bible 0:30-1:00) is visible;
-# write-time pacing is tuned for real in GRAPH-D1.5.
-STAGE_PAUSE_SECONDS = 1.0
 
 
 def _run_import_pipeline(
@@ -37,27 +38,33 @@ def _run_import_pipeline(
     job_id: str,
     store: ImportJobStore,
     importer: ExcelImporter,
+    graph: GraphRepository,
 ) -> None:
-    """Background pipeline: parse -> infer -> write, advancing the job stage."""
+    """Background pipeline: parse -> infer -> write, advancing the job stage.
+
+    No artificial delays - the write does real work. If it finishes so fast the
+    ticker barely flashes, the FRONTEND enforces a minimum per-stage display
+    floor (never the backend).
+    """
     try:
         # Job is created at stage=parsing; do the parse work under that stage.
-        time.sleep(STAGE_PAUSE_SECONDS)
         nodes, direct = importer.parse_direct(content)
 
         store.advance(job_id, ImportStage.INFERRING)
-        time.sleep(STAGE_PAUSE_SECONDS)
         inferred = importer.infer(direct)
         result = ImportResult(nodes=nodes, relationships=direct + inferred)
 
         store.advance(job_id, ImportStage.WRITING)
-        time.sleep(STAGE_PAUSE_SECONDS)
-        # TODO(GRAPH-D1.5): persist via the GraphRepository bulk writer. Until that
-        # lands, the write phase is stub-logged and the job still reaches complete.
+        started = time.perf_counter()
+        graph.write_nodes(nodes)
+        graph.write_relationships(result.relationships)
+        elapsed = time.perf_counter() - started
         logger.info(
-            "import %s: parsed %d nodes, %d relationships (writer lands in GRAPH-D1.5)",
+            "import %s: wrote %d nodes, %d relationships in %.3fs",
             job_id,
             len(nodes),
             len(result.relationships),
+            elapsed,
         )
 
         # Headline counts for the ticker: node total + DIRECT edges (matches the
@@ -75,6 +82,7 @@ async def import_excel(
     file: UploadFile = File(...),
     store: ImportJobStore = Depends(get_import_job_store),
     importer: ExcelImporter = Depends(get_excel_importer),
+    graph: GraphRepository = Depends(get_graph_repository),
 ) -> ImportJobResponse:
     filename = file.filename or ""
     if not filename.lower().endswith(".xlsx"):
@@ -93,7 +101,9 @@ async def import_excel(
         ) from exc
 
     job = store.create()
-    background_tasks.add_task(_run_import_pipeline, content, job.job_id, store, importer)
+    background_tasks.add_task(
+        _run_import_pipeline, content, job.job_id, store, importer, graph
+    )
     return ImportJobResponse(job_id=job.job_id, status=job.stage)
 
 

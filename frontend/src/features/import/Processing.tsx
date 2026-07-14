@@ -6,6 +6,12 @@ import type { components } from "../../shared/api-client";
 type JobStatus = components["schemas"]["JobStatusResponse"];
 
 const STAGE_ORDER = ["parsing", "inferring", "writing", "complete"] as const;
+const COMPLETE_INDEX = 3;
+
+// Minimum time each stage stays visible. The backend does real work with no
+// artificial delay; this floor keeps the ticker readable even when the write is
+// near-instant (GRAPH-D1.5).
+const MIN_STAGE_MS = 600;
 
 type ProcessingProps = {
   jobId: string;
@@ -25,6 +31,7 @@ function CheckIcon() {
 export function Processing({ jobId, onRetry }: ProcessingProps) {
   const navigate = useNavigate();
   const [status, setStatus] = useState<JobStatus | null>(null);
+  const [displayIndex, setDisplayIndex] = useState(0);
 
   // Poll the status endpoint every 300ms until the job settles.
   useEffect(() => {
@@ -45,19 +52,32 @@ export function Processing({ jobId, onRetry }: ProcessingProps) {
     };
   }, [jobId]);
 
-  // On complete: brief pause so the final count registers, then to the explorer.
+  const stage = status?.status ?? "parsing";
+  const failed = stage === "failed";
+  const stageIndex = STAGE_ORDER.indexOf(stage as (typeof STAGE_ORDER)[number]);
+  const backendIndex = failed ? displayIndex : Math.max(stageIndex, 0);
+
+  // Walk the displayed stage toward the backend stage, one step per MIN_STAGE_MS,
+  // so each stage is shown for at least that long.
   useEffect(() => {
-    if (status?.status !== "complete") return;
+    if (displayIndex >= backendIndex) return;
+    const t = setTimeout(() => setDisplayIndex((i) => i + 1), MIN_STAGE_MS);
+    return () => clearTimeout(t);
+  }, [displayIndex, backendIndex]);
+
+  // Once the ticker has visibly reached "complete", pause briefly then navigate.
+  useEffect(() => {
+    if (displayIndex < COMPLETE_INDEX || status?.status !== "complete") return;
     const t = setTimeout(() => navigate("/explorer"), 800);
     return () => clearTimeout(t);
-  }, [status?.status, navigate]);
+  }, [displayIndex, status?.status, navigate]);
 
-  if (status?.status === "failed") {
+  if (failed) {
     return (
       <div className="flex h-full w-full items-center justify-center p-8">
         <div className="w-full max-w-md rounded-2xl border border-hairline bg-surface p-8 text-center">
           <p className="text-base font-medium text-risk-high">Import failed</p>
-          <p className="mt-2 text-sm text-muted">{status.error ?? "Something went wrong."}</p>
+          <p className="mt-2 text-sm text-muted">{status?.error ?? "Something went wrong."}</p>
           <button
             type="button"
             onClick={onRetry}
@@ -70,25 +90,22 @@ export function Processing({ jobId, onRetry }: ProcessingProps) {
     );
   }
 
-  const stage = status?.status ?? "parsing";
-  const activeIndex = STAGE_ORDER.indexOf(stage as (typeof STAGE_ORDER)[number]);
   const hasCounts = status?.node_count != null && status?.edge_count != null;
-
   const rows = [
     { label: "Parsing sheets" },
     { label: "Resolving relationships" },
     { label: "Building graph" },
     {
-      label: hasCounts
-        ? `${status?.node_count} nodes, ${status?.edge_count} edges`
-        : "Finalizing graph",
+      label:
+        displayIndex >= COMPLETE_INDEX && hasCounts
+          ? `${status?.node_count} nodes, ${status?.edge_count} edges`
+          : "Finalizing graph",
     },
   ];
 
   function rowState(i: number): RowState {
-    if (stage === "complete") return "done";
-    if (i < activeIndex) return "done";
-    if (i === activeIndex) return "active";
+    if (i < displayIndex) return "done";
+    if (i === displayIndex) return i === COMPLETE_INDEX ? "done" : "active";
     return "pending";
   }
 
@@ -125,7 +142,7 @@ export function Processing({ jobId, onRetry }: ProcessingProps) {
                       : state === "active"
                         ? "font-medium text-accent animate-pulse"
                         : "text-muted",
-                    i === 3 && state === "done" ? "font-semibold text-ink" : "",
+                    i === COMPLETE_INDEX && state === "done" ? "font-semibold text-ink" : "",
                   ].join(" ")}
                 >
                   {row.label}
