@@ -1,8 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../../shared/api-client";
 import { GraphEngine } from "../../shared/graph-engine";
-import type { GraphEdgeInput, GraphNodeInput } from "../../shared/graph-engine";
+import type {
+  GraphEdgeInput,
+  GraphEngineHandle,
+  GraphNodeInput,
+} from "../../shared/graph-engine";
 import { Legend } from "./Legend";
+
+const FLAGSHIP_NODE_ID = "Z_PRICE_ENGINE";
 
 type LoadState = "loading" | "empty" | "error" | "ready";
 
@@ -10,6 +16,7 @@ export function GraphExplorerPage() {
   const [state, setState] = useState<LoadState>("loading");
   const [nodes, setNodes] = useState<GraphNodeInput[]>([]);
   const [edges, setEdges] = useState<GraphEdgeInput[]>([]);
+  const engineRef = useRef<GraphEngineHandle>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -61,8 +68,10 @@ export function GraphExplorerPage() {
   return (
     <div className="relative h-full w-full">
       <GraphEngine
+        ref={engineRef}
         nodes={nodes}
         edges={edges}
+        focusRegionNodeId={FLAGSHIP_NODE_ID}
         onNodeClick={(id) => console.debug("node clicked:", id)}
       />
       <Legend />
