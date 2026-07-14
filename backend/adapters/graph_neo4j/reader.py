@@ -46,6 +46,21 @@ def read_graph(driver: Driver, limit: int) -> dict[str, Any]:
     }
 
 
+def search_nodes(driver: Driver, query: str, limit: int) -> list[dict[str, Any]]:
+    """Case-insensitive substring match over node names; prefix matches rank
+    first, then alphabetical. Returns id/name/label."""
+    with driver.session() as session:
+        records = session.run(
+            "MATCH (n) WHERE toLower(n.name) CONTAINS toLower($q) "
+            "RETURN n.name AS id, n.name AS name, labels(n)[0] AS label, "
+            "CASE WHEN toLower(n.name) STARTS WITH toLower($q) THEN 0 ELSE 1 END AS rank "
+            "ORDER BY rank ASC, n.name ASC LIMIT $limit",
+            q=query,
+            limit=limit,
+        ).data()
+    return [{"id": r["id"], "name": r["name"], "label": r["label"]} for r in records]
+
+
 def read_node(driver: Driver, name: str) -> dict[str, Any] | None:
     """Return a node's full properties plus its neighbors, or None if unknown.
 

@@ -8,6 +8,7 @@ import type {
 } from "../../shared/graph-engine";
 import { Legend } from "./Legend";
 import { NodeDrawer } from "./NodeDrawer";
+import { SearchOverlay } from "../search/SearchOverlay";
 
 const FLAGSHIP_NODE_ID = "Z_PRICE_ENGINE";
 
@@ -87,6 +88,12 @@ export function GraphExplorerPage() {
         nodeId={selectedId}
         onClose={() => setSelectedId(null)}
         onNavigate={(id) => {
+          void engineRef.current?.flyToNode(id);
+          setSelectedId(id);
+        }}
+      />
+      <SearchOverlay
+        onSelect={(id) => {
           void engineRef.current?.flyToNode(id);
           setSelectedId(id);
         }}

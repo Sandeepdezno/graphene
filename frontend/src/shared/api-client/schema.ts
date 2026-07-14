@@ -387,10 +387,6 @@ export interface components {
             /** Name */
             name: string;
             label: components["schemas"]["NodeLabel"];
-            /** Description */
-            description: string;
-            /** Score */
-            score: number;
         };
         /**
          * SourceEnum

@@ -42,6 +42,6 @@ class GraphRepository(ABC):
         ...
 
     @abstractmethod
-    def search(self, query: str) -> Sequence[NodeModel]:
-        """Fuzzy-match nodes by name / description."""
+    def search(self, query: str, limit: int) -> list[dict[str, Any]]:
+        """Match nodes by name; returns id/name/label dicts, prefix matches first."""
         ...

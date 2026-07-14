@@ -66,5 +66,5 @@ class Neo4jGraphRepository(GraphRepository):
     def get_node(self, node_id: str) -> dict[str, Any] | None:
         return reader.read_node(self._driver, node_id)
 
-    def search(self, query: str) -> Sequence[NodeModel]:
-        raise NotImplementedError("search lands in GRAPH-D2.5")
+    def search(self, query: str, limit: int) -> list[dict[str, Any]]:
+        return reader.search_nodes(self._driver, query, limit)

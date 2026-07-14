@@ -10,8 +10,6 @@ class SearchResultItem(Schema):
     id: str
     name: str
     label: NodeLabel
-    description: str
-    score: float
 
 
 class SearchResponse(Schema):
