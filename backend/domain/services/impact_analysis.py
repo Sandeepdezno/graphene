@@ -51,11 +51,26 @@ For the flagship node Z_PRICE_ENGINE this yields 74.
 
 from __future__ import annotations
 
-from collections import defaultdict, deque
+from collections import Counter, defaultdict, deque
 from dataclasses import dataclass, field
 
 from domain.graph_ports import GraphRepository
 from domain.models import Confidence
+
+
+class NodeNotFoundError(Exception):
+    """Raised when the analyzed node id is not present in the graph."""
+
+
+# Singular nouns for the plain-language explanation.
+LABEL_NOUN: dict[str, str] = {
+    "Program": "program",
+    "Table": "table",
+    "FunctionModule": "function module",
+    "BAdI": "BAdI",
+    "Job": "job",
+    "Transport": "transport",
+}
 
 # Fetch the whole (demo-scale) graph through the port for in-memory traversal.
 _WHOLE_GRAPH = 1_000_000
@@ -89,6 +104,7 @@ class ImpactResult:
     node_id: str
     affected: list[ImpactedNode] = field(default_factory=list)
     risk_score: int = 0
+    explanation: str = ""
 
 
 def _min_confidence(a: Confidence, b: Confidence) -> Confidence:
@@ -110,6 +126,8 @@ class ImpactAnalysisService:
     def analyze(self, node_id: str) -> ImpactResult:
         graph = self._repo.get_graph(_WHOLE_GRAPH)
         label_of = {n["id"]: n["label"] for n in graph["nodes"]}
+        if node_id not in label_of:
+            raise NodeNotFoundError(node_id)
 
         # Adjacency, keyed for the direction rules documented above.
         out_writes: dict[str, list[tuple[str, Confidence]]] = defaultdict(list)
@@ -151,6 +169,7 @@ class ImpactAnalysisService:
             node_id=node_id,
             affected=affected,
             risk_score=_risk_score(affected),
+            explanation=_explanation(node_id, affected),
         )
 
 
@@ -196,3 +215,36 @@ def _risk_score(affected: list[ImpactedNode]) -> int:
             * CONFIDENCE_FACTOR[node.confidence]
         )
     return min(100, round(total))
+
+
+def _noun(label: str, count: int) -> str:
+    noun = LABEL_NOUN.get(label, label.lower())
+    return noun if count == 1 else f"{noun}s"
+
+
+def _explanation(node_id: str, affected: list[ImpactedNode]) -> str:
+    n = len(affected)
+    if n == 0:
+        return (
+            f"Modifying {node_id} affects no downstream objects — nothing recorded "
+            "depends on it."
+        )
+
+    counts = Counter(node.label for node in affected)
+    n_types = len(counts)
+    # Highlight the two largest groups (by count, then label).
+    top = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[:2]
+    highlight = " and ".join(f"{count} {_noun(label, count)}" for label, count in top)
+
+    text = (
+        f"Modifying {node_id} affects {n} downstream object{'' if n == 1 else 's'} "
+        f"across {n_types} type{'' if n_types == 1 else 's'}, including {highlight}."
+    )
+
+    inferred = sum(1 for node in affected if node.confidence is Confidence.INFERRED)
+    if inferred:
+        text += (
+            f" {inferred} dependenc{'y is' if inferred == 1 else 'ies are'} inferred "
+            "rather than explicitly documented."
+        )
+    return text

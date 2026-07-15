@@ -11,6 +11,7 @@ from functools import lru_cache
 from adapters.graph_neo4j import Neo4jGraphRepository
 from adapters.importer_excel import ExcelImporter
 from domain.graph_ports import GraphRepository
+from domain.services.impact_analysis import ImpactAnalysisService
 from domain.services.import_job import ImportJobStore
 
 
@@ -30,3 +31,9 @@ def get_import_job_store() -> ImportJobStore:
 def get_excel_importer() -> ExcelImporter:
     """Return the Excel importer (hardcoded adapter binding)."""
     return ExcelImporter()
+
+
+@lru_cache(maxsize=1)
+def get_impact_service() -> ImpactAnalysisService:
+    """Return the impact-analysis service, wired to the graph repository."""
+    return ImpactAnalysisService(get_graph_repository())
