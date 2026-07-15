@@ -36,8 +36,13 @@ export type GraphEngineProps = {
   onBackgroundClick?: () => void;
   /** Controlled highlight: these nodes get an accent ring and stay bright. */
   highlightNodeIds?: ReadonlySet<string>;
-  /** When true, nodes not in `highlightNodeIds` render at 15% opacity. */
+  /** When true, nodes that are not "bright" (not highlighted and without a color
+   *  override) fade toward 15% opacity over ~250ms; edges between two non-bright
+   *  nodes dim likewise. Toggling back animates the return. */
   dim?: boolean;
+  /** Per-node fill override, id -> CSS color (e.g. "var(--risk-high)"). Overridden
+   *  nodes are treated as "bright". The engine has no idea what the colors mean. */
+  nodeColorOverride?: Record<string, string>;
   /** Edge visibility filter (e.g. hide inferred edges). */
   isEdgeVisible?: (edge: GraphEdgeInput) => boolean;
   /** Opacity multiplier for inferred edges (1 = shown, 0 = faded out). Animate
@@ -65,6 +70,7 @@ export const GraphEngine = forwardRef<GraphEngineHandle, GraphEngineProps>(
       onBackgroundClick,
       highlightNodeIds,
       dim = false,
+      nodeColorOverride,
       isEdgeVisible,
       inferredEdgeOpacity = 1,
       focusRegionNodeId,
@@ -79,6 +85,25 @@ export const GraphEngine = forwardRef<GraphEngineHandle, GraphEngineProps>(
 
     const settleStart = useRef(0);
     const settled = useRef(false);
+
+    // Generic dim fade (~250ms). Kept in the engine so callers just flip `dim`.
+    const [dimProgress, setDimProgress] = useState(0);
+    const dimProgressRef = useRef(0);
+    dimProgressRef.current = dimProgress;
+    useEffect(() => {
+      const to = dim ? 1 : 0;
+      const from = dimProgressRef.current;
+      if (from === to) return;
+      const start = performance.now();
+      let raf = 0;
+      const tick = () => {
+        const t = Math.min(1, (performance.now() - start) / 250);
+        setDimProgress(from + (to - from) * t);
+        if (t < 1) raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+      return () => cancelAnimationFrame(raf);
+    }, [dim]);
 
     useEffect(() => {
       const el = containerRef.current;
@@ -190,14 +215,16 @@ export const GraphEngine = forwardRef<GraphEngineHandle, GraphEngineProps>(
             onBackgroundClick={() => onBackgroundClick?.()}
             nodeCanvasObject={(node, ctx, globalScale) => {
               const n = node as { id: string; name: string; label: string; __r: number; x: number; y: number };
+              const override = nodeColorOverride?.[n.id];
               const highlighted = highlightNodeIds?.has(n.id) ?? false;
-              const dimmed = dim && !highlighted;
+              const bright = highlighted || override != null;
+              const opacity = bright ? 1 : 1 - 0.85 * dimProgress; // 1 -> 0.15
               const r = n.__r;
 
-              ctx.globalAlpha = dimmed ? 0.15 : 1;
+              ctx.globalAlpha = opacity;
               ctx.beginPath();
               ctx.arc(n.x, n.y, r, 0, 2 * Math.PI);
-              ctx.fillStyle = colors.nodeByLabel[n.label] ?? colors.accent;
+              ctx.fillStyle = override ?? colors.nodeByLabel[n.label] ?? colors.accent;
               ctx.fill();
 
               if (highlighted) {
@@ -210,7 +237,7 @@ export const GraphEngine = forwardRef<GraphEngineHandle, GraphEngineProps>(
               }
 
               if (globalScale > 1.3) {
-                ctx.globalAlpha = dimmed ? 0.15 : 0.85;
+                ctx.globalAlpha = opacity * 0.9;
                 ctx.font = `${11 / globalScale}px Inter, sans-serif`;
                 ctx.textAlign = "center";
                 ctx.textBaseline = "top";
@@ -229,13 +256,20 @@ export const GraphEngine = forwardRef<GraphEngineHandle, GraphEngineProps>(
             linkCanvasObjectMode={() => "replace"}
             linkCanvasObject={(link, ctx) => {
               const l = link as unknown as GraphEdgeInput & {
-                source: { x: number; y: number };
-                target: { x: number; y: number };
+                source: { x: number; y: number; id: string };
+                target: { x: number; y: number; id: string };
               };
               if (isEdgeVisible && !isEdgeVisible(l)) return;
 
+              // An edge stays full only when both endpoints are "bright".
+              const isBright = (id: string) =>
+                (highlightNodeIds?.has(id) ?? false) || nodeColorOverride?.[id] != null;
+              const edgeDim =
+                dimProgress > 0.001 && !(isBright(l.source.id) && isBright(l.target.id));
+              const dimFactor = edgeDim ? 1 - 0.85 * dimProgress : 1;
+
               const inferred = l.confidence === "inferred";
-              const alpha = inferred ? 0.65 * inferredEdgeOpacity : 0.4;
+              const alpha = (inferred ? 0.65 * inferredEdgeOpacity : 0.4) * dimFactor;
               if (alpha <= 0.001) return; // fully faded — skip draw (positions unchanged)
               ctx.strokeStyle = inferred ? colors.inferred : colors.direct;
               ctx.globalAlpha = alpha;

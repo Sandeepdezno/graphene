@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { api } from "../../shared/api-client";
 import type { components } from "../../shared/api-client";
 
-type ImpactResponse = components["schemas"]["ImpactResponse"];
+export type ImpactData = components["schemas"]["ImpactResponse"];
 
 // Tier thresholds (named constants): <40 low, 40–70 medium, >70 high.
 const LOW_THRESHOLD = 40;
@@ -94,26 +93,11 @@ function RiskGauge({ score }: { score: number }) {
 
 type ImpactPanelProps = {
   nodeId: string;
+  impact: ImpactData | null;
   onBack: () => void;
 };
 
-export function ImpactPanel({ nodeId, onBack }: ImpactPanelProps) {
-  const [impact, setImpact] = useState<ImpactResponse | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function load(): Promise<void> {
-      const { data } = await api.GET("/api/v1/impact/{node_id}", {
-        params: { path: { node_id: nodeId } },
-      });
-      if (!cancelled && data) setImpact(data);
-    }
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [nodeId]);
-
+export function ImpactPanel({ nodeId, impact, onBack }: ImpactPanelProps) {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-2 border-b border-hairline p-4">

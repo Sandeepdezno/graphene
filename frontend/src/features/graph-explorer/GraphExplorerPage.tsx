@@ -10,10 +10,22 @@ import { Legend } from "./Legend";
 import { NodeDrawer } from "./NodeDrawer";
 import { ConfidenceToggle } from "./ConfidenceToggle";
 import { SearchOverlay } from "../search/SearchOverlay";
+import type { ImpactData } from "../impact-analysis/Panel";
 
 const FADE_MS = 300;
 
 const FLAGSHIP_NODE_ID = "Z_PRICE_ENGINE";
+
+type RiskPalette = { high: string; medium: string; low: string };
+
+// Tier-by-proximity: the closest dependencies are the most at-risk, so they burn
+// hottest. hop 1 = high (red), hop 2 = medium (amber), hop 3+ = low (green).
+// Returns a resolved color (canvas fillStyle cannot read CSS var() strings).
+function tierColor(hop: number, palette: RiskPalette): string {
+  if (hop <= 1) return palette.high;
+  if (hop === 2) return palette.medium;
+  return palette.low;
+}
 
 type LoadState = "loading" | "empty" | "error" | "ready";
 
@@ -24,11 +36,52 @@ export function GraphExplorerPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showInferred, setShowInferred] = useState(true);
   const [inferredOpacity, setInferredOpacity] = useState(1);
+  const [impactOpen, setImpactOpen] = useState(false);
+  const [impact, setImpact] = useState<ImpactData | null>(null);
   const engineRef = useRef<GraphEngineHandle>(null);
+
   const highlightNodeIds = useMemo(
     () => (selectedId ? new Set([selectedId]) : undefined),
     [selectedId],
   );
+
+  // Resolve the risk-tier tokens once (canvas needs real color values, not var()).
+  const riskPalette = useMemo<RiskPalette>(() => {
+    const css = getComputedStyle(document.documentElement);
+    return {
+      high: css.getPropertyValue("--risk-high").trim(),
+      medium: css.getPropertyValue("--risk-medium").trim(),
+      low: css.getPropertyValue("--risk-low").trim(),
+    };
+  }, []);
+
+  // Impact is active only once its data has loaded (so the dim + colours land together).
+  const impactActive = impactOpen && impact != null;
+  const nodeColorOverride = useMemo(() => {
+    if (!impactActive || !impact) return undefined;
+    const map: Record<string, string> = {};
+    for (const group of impact.affected_groups) {
+      for (const item of group.items) {
+        map[item.id] = tierColor(item.hop_distance, riskPalette);
+      }
+    }
+    return map;
+  }, [impactActive, impact, riskPalette]);
+
+  // Selecting a different node (or clearing) exits impact mode.
+  useEffect(() => {
+    setImpactOpen(false);
+    setImpact(null);
+  }, [selectedId]);
+
+  async function showImpact(): Promise<void> {
+    if (!selectedId) return;
+    setImpactOpen(true);
+    const { data } = await api.GET("/api/v1/impact/{node_id}", {
+      params: { path: { node_id: selectedId } },
+    });
+    if (data) setImpact(data);
+  }
 
   // Fade inferred edges in/out over ~300ms (opacity only — no relayout).
   useEffect(() => {
@@ -102,6 +155,8 @@ export function GraphExplorerPage() {
         edges={edges}
         focusRegionNodeId={FLAGSHIP_NODE_ID}
         highlightNodeIds={highlightNodeIds}
+        dim={impactActive}
+        nodeColorOverride={nodeColorOverride}
         inferredEdgeOpacity={inferredOpacity}
         onNodeClick={(id) => setSelectedId(id)}
         onBackgroundClick={() => setSelectedId(null)}
@@ -114,6 +169,10 @@ export function GraphExplorerPage() {
       <Legend />
       <NodeDrawer
         nodeId={selectedId}
+        impactOpen={impactOpen}
+        impact={impact}
+        onShowImpact={() => void showImpact()}
+        onHideImpact={() => setImpactOpen(false)}
         onClose={() => setSelectedId(null)}
         onNavigate={(id) => {
           void engineRef.current?.flyToNode(id);

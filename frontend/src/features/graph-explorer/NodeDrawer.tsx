@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../../shared/api-client";
 import type { components } from "../../shared/api-client";
 import { ImpactPanel } from "../impact-analysis/Panel";
+import type { ImpactData } from "../impact-analysis/Panel";
 
 type NodeDetail = components["schemas"]["NodeDetailResponse"];
 type Neighbor = components["schemas"]["NodeNeighbor"];
@@ -93,19 +94,25 @@ function EmptyState() {
 
 type NodeDrawerProps = {
   nodeId: string | null;
+  impactOpen: boolean;
+  impact: ImpactData | null;
+  onShowImpact: () => void;
+  onHideImpact: () => void;
   onClose: () => void;
   onNavigate: (id: string) => void;
 };
 
-export function NodeDrawer({ nodeId, onClose, onNavigate }: NodeDrawerProps) {
+export function NodeDrawer({
+  nodeId,
+  impactOpen,
+  impact,
+  onShowImpact,
+  onHideImpact,
+  onClose,
+  onNavigate,
+}: NodeDrawerProps) {
   const [detail, setDetail] = useState<NodeDetail | null>(null);
-  const [mode, setMode] = useState<"detail" | "impact">("detail");
   const open = nodeId != null;
-
-  // Always return to the detail view when the focused node changes.
-  useEffect(() => {
-    setMode("detail");
-  }, [nodeId]);
 
   useEffect(() => {
     if (nodeId == null) return;
@@ -143,8 +150,8 @@ export function NodeDrawer({ nodeId, onClose, onNavigate }: NodeDrawerProps) {
         open ? "translate-x-0" : "translate-x-full",
       ].join(" ")}
     >
-      {node && mode === "impact" ? (
-        <ImpactPanel nodeId={node.name} onBack={() => setMode("detail")} />
+      {node && impactOpen ? (
+        <ImpactPanel nodeId={node.name} impact={impact} onBack={onHideImpact} />
       ) : node ? (
         <>
           <div className="border-b border-hairline p-4">
@@ -182,7 +189,7 @@ export function NodeDrawer({ nodeId, onClose, onNavigate }: NodeDrawerProps) {
             {neighbors.length > 0 && (
               <button
                 type="button"
-                onClick={() => setMode("impact")}
+                onClick={onShowImpact}
                 className="mt-4 w-full rounded-lg bg-accent px-3 py-2.5 text-sm font-semibold text-canvas transition-opacity hover:opacity-90"
               >
                 What breaks if I modify this?
