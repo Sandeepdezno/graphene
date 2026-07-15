@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../../shared/api-client";
 import type { components } from "../../shared/api-client";
+import { ImpactPanel } from "../impact-analysis/Panel";
 
 type NodeDetail = components["schemas"]["NodeDetailResponse"];
 type Neighbor = components["schemas"]["NodeNeighbor"];
@@ -98,7 +99,13 @@ type NodeDrawerProps = {
 
 export function NodeDrawer({ nodeId, onClose, onNavigate }: NodeDrawerProps) {
   const [detail, setDetail] = useState<NodeDetail | null>(null);
+  const [mode, setMode] = useState<"detail" | "impact">("detail");
   const open = nodeId != null;
+
+  // Always return to the detail view when the focused node changes.
+  useEffect(() => {
+    setMode("detail");
+  }, [nodeId]);
 
   useEffect(() => {
     if (nodeId == null) return;
@@ -132,11 +139,13 @@ export function NodeDrawer({ nodeId, onClose, onNavigate }: NodeDrawerProps) {
     <aside
       aria-hidden={!open}
       className={[
-        "absolute right-0 top-0 z-10 flex h-full w-[360px] flex-col border-l border-hairline bg-surface transition-transform duration-300",
+        "absolute right-0 top-0 z-10 flex h-full w-[400px] flex-col border-l border-hairline bg-surface transition-transform duration-300",
         open ? "translate-x-0" : "translate-x-full",
       ].join(" ")}
     >
-      {node && (
+      {node && mode === "impact" ? (
+        <ImpactPanel nodeId={node.name} onBack={() => setMode("detail")} />
+      ) : node ? (
         <>
           <div className="border-b border-hairline p-4">
             <div className="flex items-start justify-between gap-3">
@@ -168,6 +177,16 @@ export function NodeDrawer({ nodeId, onClose, onNavigate }: NodeDrawerProps) {
             {node.description && <p className="text-sm text-ink">{node.description}</p>}
             {node.business_meaning && (
               <p className="mt-2 text-sm text-muted">{node.business_meaning}</p>
+            )}
+
+            {neighbors.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setMode("impact")}
+                className="mt-4 w-full rounded-lg bg-accent px-3 py-2.5 text-sm font-semibold text-canvas transition-opacity hover:opacity-90"
+              >
+                What breaks if I modify this?
+              </button>
             )}
 
             <div className="mt-5">
@@ -210,7 +229,7 @@ export function NodeDrawer({ nodeId, onClose, onNavigate }: NodeDrawerProps) {
             </div>
           </div>
         </>
-      )}
+      ) : null}
     </aside>
   );
 }

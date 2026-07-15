@@ -10,7 +10,7 @@ export function ConfidenceToggle({ checked, onChange, drawerOpen = false }: Conf
     <div
       className={[
         "absolute top-4 z-10 flex items-center gap-2.5 rounded-lg border border-hairline bg-surface px-3 py-2 transition-all duration-300",
-        drawerOpen ? "right-[376px]" : "right-4",
+        drawerOpen ? "right-[416px]" : "right-4",
       ].join(" ")}
     >
       <span className="text-xs font-medium text-ink">Show inferred relationships</span>
